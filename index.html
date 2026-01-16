@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discipline Tracker</title>
+    <style>
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #333;
+    min-height: 100vh;
+}
+
+h1, h2 {
+    text-align: center;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+#goals-section {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 40px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+#goals-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.goal-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f9f9f9;
+    border-radius: 5px;
+    transition: background 0.3s;
+}
+
+.goal-item:hover {
+    background: #e9e9e9;
+}
+
+.goal-item input[type="checkbox"] {
+    margin-right: 15px;
+    transform: scale(1.2);
+}
+
+.goal-item span {
+    flex-grow: 1;
+    font-size: 16px;
+}
+
+.goal-item button {
+    margin-left: 10px;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.goal-item button:first-of-type {
+    background-color: #2196F3;
+    color: white;
+}
+
+.goal-item button:first-of-type:hover {
+    background-color: #1976D2;
+}
+
+.goal-item button:last-of-type {
+    background-color: #f44336;
+    color: white;
+}
+
+.goal-item button:last-of-type:hover {
+    background-color: #d32f2f;
+}
+
+.add-goal-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+#new-goal {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+#add-goal {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.3s;
+}
+
+#add-goal:hover {
+    background-color: #45a049;
+}
+
+#progress-section {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+#days-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.day {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 5px;
+    transition: all 0.3s;
+    cursor: default;
+}
+
+.day.completed {
+    background-color: #4CAF50;
+    color: white;
+    border-color: #4CAF50;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.day:hover {
+    transform: scale(1.1);
+}
+
+#streak {
+    font-weight: bold;
+    font-size: 18px;
+    color: #4CAF50;
+}
+
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+    #days-grid {
+        grid-template-columns: repeat(6, 1fr);
+    }
+    .day {
+        width: 35px;
+        height: 35px;
+        font-size: 12px;
+    }
+    .add-goal-container {
+        flex-direction: column;
+    }
+}
+    </style>
+</head>
+<body>
+    <h1>Discipline Tracker</h1>
+    <div id="goals-section">
+        <h2>Today's Goals</h2>
+        <ul id="goals-list"></ul>
+        <div class="add-goal-container">
+            <input type="text" id="new-goal" placeholder="Add a new goal">
+            <button id="add-goal">Add Goal</button>
+        </div>
+    </div>
+    <div id="progress-section">
+        <h2>60-Day Progress</h2>
+        <div id="days-grid"></div>
+        <p>Current Streak: <span id="streak">0</span> days</p>
+    </div>
+    <script>
+let goals = JSON.parse(localStorage.getItem('goals')) || [];
+let progress = JSON.parse(localStorage.getItem('progress')) || {};
+
+const today = new Date().toISOString().split('T')[0];
+
+if (!progress[today]) {
+    progress[today] = new Array(goals.length).fill(false);
+}
+
+function saveData() {
+    localStorage.setItem('goals', JSON.stringify(goals));
+    localStorage.setItem('progress', JSON.stringify(progress));
+}
+
+function renderGoals() {
+    const list = document.getElementById('goals-list');
+    list.innerHTML = '';
+    goals.forEach((goal, index) => {
+        const li = document.createElement('li');
+        li.className = 'goal-item';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = progress[today][index] || false;
+        checkbox.addEventListener('change', () => {
+            progress[today][index] = checkbox.checked;
+            checkDayCompletion();
+            saveData();
+        });
+        const span = document.createElement('span');
+        span.textContent = goal;
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.addEventListener('click', () => {
+            const newText = prompt('Edit goal:', goal);
+            if (newText) {
+                goals[index] = newText;
+                renderGoals();
+                saveData();
+            }
+        });
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.addEventListener('click', () => {
+            goals.splice(index, 1);
+            Object.keys(progress).forEach(date => {
+                progress[date].splice(index, 1);
+            });
+            renderGoals();
+            renderProgress();
+            saveData();
+        });
+        li.appendChild(checkbox);
+        li.appendChild(span);
+        li.appendChild(editBtn);
+        li.appendChild(deleteBtn);
+        list.appendChild(li);
+    });
+}
+
+function checkDayCompletion() {
+    const allDone = progress[today].every(done => done);
+    // The day completion is implicit in progress, but we don't need to store extra, since we check every time.
+    renderProgress();
+}
+
+function renderProgress() {
+    const grid = document.getElementById('days-grid');
+    grid.innerHTML = '';
+    const dates = [];
+    for (let i = 59; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        dates.push(d.toISOString().split('T')[0]);
+    }
+    dates.forEach((date, index) => {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'day';
+        dayDiv.textContent = 60 - index;
+        if (progress[date] && progress[date].length === goals.length && goals.length > 0 && progress[date].every(done => done)) {
+            dayDiv.classList.add('completed');
+        }
+        grid.appendChild(dayDiv);
+    });
+    // Calculate streak
+    let streak = 0;
+    if (progress[today] && progress[today].length === goals.length && goals.length > 0 && progress[today].every(done => done)) {
+        streak = 1;
+        let d = new Date(today);
+        while (true) {
+            d.setDate(d.getDate() - 1);
+            const prevDay = d.toISOString().split('T')[0];
+            if (progress[prevDay] && progress[prevDay].length === goals.length && goals.length > 0 && progress[prevDay].every(done => done)) {
+                streak++;
+            } else {
+                break;
+            }
+        }
+    }
+    document.getElementById('streak').textContent = streak;
+}
+
+document.getElementById('add-goal').addEventListener('click', () => {
+    const input = document.getElementById('new-goal');
+    const newGoal = input.value.trim();
+    if (newGoal) {
+        goals.push(newGoal);
+        Object.keys(progress).forEach(date => {
+            progress[date].push(false);
+        });
+        input.value = '';
+        renderGoals();
+        renderProgress();
+        saveData();
+    }
+});
+
+renderGoals();
+renderProgress();
+    </script>
+</body>
+</html>
